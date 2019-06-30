@@ -1,16 +1,17 @@
 package com.giorgimode;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static com.giorgimode.WebCrawlerUtil.getHtmlContent;
+import static com.giorgimode.WebCrawlerUtil.intoString;
 import static java.util.Comparator.reverseOrder;
 import static java.util.Map.Entry.comparingByValue;
 import static java.util.function.Function.identity;
@@ -21,23 +22,18 @@ import static java.util.stream.Collectors.toMap;
 
 class WebCrawler {
 
-    private static final String  GOOGLE_RESULT_URL_PATTERN1 = "<a href=\"/url?q=";
-    private static final String  GOOGLE_RESULT_URL_PATTERN2 = "\">";
-    private static final Pattern GOOGLE_RESULT_URL_PATTERN = Pattern.compile(Pattern.quote(GOOGLE_RESULT_URL_PATTERN1)
-                                                                              + "(.*?)" + Pattern.quote(GOOGLE_RESULT_URL_PATTERN2));
-    private static final Pattern JS_LIBRARY_PATTERN        = Pattern.compile("\\b(?<![<>][\\s]|\\w)[\\w-]*?\\.js\\b");
-    private static final String  QUERY_FORMAT              = "https://www.google.com/search?q=%s&num=10";
-    private static final int     TOP_LIBRARY_COUNT         = 5;
-    private static final String  AMPERSAND                 = "&amp;";
+    private static final String QUERY_FORMAT      = "https://www.google.com/search?q=%s&num=10";
+    private static final int    TOP_LIBRARY_COUNT = 5;
+    private static final String USER_AGENT        = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 
-    static Map<String, Long> retrieveLibraries(String searchTerm) {
-        return getHtmlContent(String.format(QUERY_FORMAT, searchTerm))
-                .map(WebCrawler::extractResultUrls)
+    Map<String, Long> retrieveLibraries(String searchTerm) {
+        return getHtmlContent(String.format(QUERY_FORMAT, URLEncoder.encode(searchTerm, Charset.forName("UTF-8"))))
+                .map(WebCrawlerUtil::extractResultUrls)
                 .stream()
                 .flatMap(Set::stream)
-                .map(WebCrawlerUtil::getHtmlContent)
+                .map(this::getHtmlContent)
                 .flatMap(Optional::stream)
-                .map(WebCrawler::parseLibraries)
+                .map(WebCrawlerUtil::parseLibraries)
                 .flatMap(List::stream)
                 .collect(groupingBy(identity(), counting()))
                 .entrySet()
@@ -50,28 +46,14 @@ class WebCrawler {
                         (v1, v2) -> v1, LinkedHashMap::new));
     }
 
-    private static Set<String> extractResultUrls(String googleResultHtmlContent) {
-        Set<String> urls = new HashSet<>();
-        Matcher matcher = GOOGLE_RESULT_URL_PATTERN.matcher(googleResultHtmlContent);
-
-        while (matcher.find()) {
-            String url = matcher.group(0).trim();
-
-            url = url.substring(url.indexOf(GOOGLE_RESULT_URL_PATTERN1) + GOOGLE_RESULT_URL_PATTERN1.length())
-                     .substring(0, url.indexOf(AMPERSAND));
-
-            urls.add(url);
+    Optional<String> getHtmlContent(String path) {
+        try {
+            URLConnection connection = new URL(path).openConnection();
+            connection.setRequestProperty("User-Agent", USER_AGENT);
+            return Optional.of(intoString(connection.getInputStream()));
+        } catch (IOException e) {
+            // exceptions should be logged/monitored/not ignored in production. For now ignore 4xx results
+            return Optional.empty();
         }
-        return urls;
-    }
-
-    private static List<String> parseLibraries(String htmlContent) {
-        List<String> libraries = new ArrayList<>();
-        Matcher matcher = JS_LIBRARY_PATTERN.matcher(htmlContent);
-
-        while (matcher.find()) {
-            libraries.add(matcher.group(0).trim());
-        }
-        return libraries;
     }
 }
