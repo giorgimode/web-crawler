@@ -7,14 +7,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.giorgimode.TestUtils.readFromFile;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.doReturn;
@@ -28,9 +25,9 @@ public class WebCrawlerTest {
     @Test
     public void testShouldParsePagesAndCountLibraries() throws URISyntaxException, IOException {
         String searchTerm = "dracarys";
-        String googleResultContent = readFromFile("googleResult.html");
-        String referredUrlContent1 = readFromFile("referredUrlResult.html");
-        String referredUrlContent2 = readFromFile("referredUrlResult2.html");
+        String googleResultContent = readFromFile("googleResult.html", getClass());
+        String referredUrlContent1 = readFromFile("referredUrlResult.html", getClass());
+        String referredUrlContent2 = readFromFile("referredUrlResult2.html", getClass());
 
         doReturn(Optional.empty()).when(webCrawler).getHtmlContent(any());
         doReturn(Optional.of(googleResultContent)).when(webCrawler).getHtmlContent(contains(searchTerm));
@@ -47,14 +44,6 @@ public class WebCrawlerTest {
 
     @Test
     public void testShouldHandleEmptyResults() {
-    }
-
-    private String readFromFile(String resourceName) throws IOException, URISyntaxException {
-        URL resource = getClass().getClassLoader().getResource(resourceName);
-        if (resource == null) {
-            fail("Given resource could not be found " + resourceName);
-        }
-        return Files.readString(Path.of(resource.toURI()));
     }
 
 }
