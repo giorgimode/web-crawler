@@ -15,7 +15,7 @@ public class WebCrawlerUtilTest {
     }
 
     @Test
-    public void testShouldParseLibraries() {
+    public void testShouldParseForLibraries() {
     }
 
 }

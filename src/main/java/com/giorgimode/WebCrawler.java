@@ -23,32 +23,31 @@ import static java.util.stream.Collectors.toMap;
 class WebCrawler {
 
     private static final String QUERY_FORMAT      = "https://www.google.com/search?q=%s&num=10";
-    private static final int    TOP_LIBRARY_COUNT = 5;
     private static final String USER_AGENT        = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 
-    Map<String, Long> retrieveLibraries(String searchTerm) {
+    Map<String, Long> retrieveLibraries(String searchTerm, int libraryCount) {
         return getHtmlContent(String.format(QUERY_FORMAT, URLEncoder.encode(searchTerm, Charset.forName("UTF-8"))))
                 .map(WebCrawlerUtil::extractResultUrls)
                 .stream()
                 .flatMap(Set::stream)
                 .map(this::getHtmlContent)
                 .flatMap(Optional::stream)
-                .map(WebCrawlerUtil::parseLibraries)
+                .map(WebCrawlerUtil::parseForLibraries)
                 .flatMap(List::stream)
                 .collect(groupingBy(identity(), counting()))
                 .entrySet()
                 .stream()
                 .sorted(comparingByValue(reverseOrder()))
-                .limit(TOP_LIBRARY_COUNT)
+                .limit(libraryCount)
                 .collect(toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue,
                         (v1, v2) -> v1, LinkedHashMap::new));
     }
 
-    Optional<String> getHtmlContent(String path) {
+    Optional<String> getHtmlContent(String url) {
         try {
-            URLConnection connection = new URL(path).openConnection();
+            URLConnection connection = new URL(url).openConnection();
             connection.setRequestProperty("User-Agent", USER_AGENT);
             return Optional.of(intoString(connection.getInputStream()));
         } catch (IOException e) {

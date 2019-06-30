@@ -41,7 +41,7 @@ final class WebCrawlerUtil {
     }
 
     // switch List to Set if duplicates from the same page should be ignored
-    static List<String> parseLibraries(String htmlContent) {
+    static List<String> parseForLibraries(String htmlContent) {
         List<String> libraries = new ArrayList<>();
         Matcher matcher = JS_LIBRARY_PATTERN.matcher(htmlContent);
 
