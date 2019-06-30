@@ -45,6 +45,45 @@ class WebCrawler {
                         (v1, v2) -> v1, LinkedHashMap::new));
     }
 
+    Map<String, Long> retrieveLibrariesWithoutLimit(String searchTerm) {
+        return getHtmlContent(String.format(QUERY_FORMAT, URLEncoder.encode(searchTerm, Charset.forName("UTF-8"))))
+                .map(WebCrawlerUtil::extractResultUrls)
+                .stream()
+                .flatMap(Set::stream)
+                .map(this::getHtmlContent)
+                .flatMap(Optional::stream)
+                .map(WebCrawlerUtil::parseForLibraries)
+                .flatMap(List::stream)
+                .collect(groupingBy(identity(), counting()))
+                .entrySet()
+                .stream()
+                .sorted(comparingByValue(reverseOrder()))
+                .collect(toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (v1, v2) -> v1, LinkedHashMap::new));
+    }
+
+    Map<String, Long> retrieveLibrariesWithoutLimitParallelized(String searchTerm) {
+        return getHtmlContent(String.format(QUERY_FORMAT, URLEncoder.encode(searchTerm, Charset.forName("UTF-8"))))
+                .map(WebCrawlerUtil::extractResultUrls)
+                .stream()
+                .flatMap(Set::stream)
+                .parallel()
+                .map(this::getHtmlContent)
+                .flatMap(Optional::stream)
+                .map(WebCrawlerUtil::parseForLibraries)
+                .flatMap(List::stream)
+                .collect(groupingBy(identity(), counting()))
+                .entrySet()
+                .stream()
+                .sorted(comparingByValue(reverseOrder()))
+                .collect(toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (v1, v2) -> v1, LinkedHashMap::new));
+    }
+
     Optional<String> getHtmlContent(String url) {
         try {
             URLConnection connection = new URL(url).openConnection();
