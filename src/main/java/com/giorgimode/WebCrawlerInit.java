@@ -4,7 +4,7 @@ import java.util.Scanner;
 
 public class WebCrawlerInit {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         System.out.println("Please enter a search string: ");
         Scanner scanner = new Scanner(System.in);
         String searchString = scanner.nextLine();
@@ -13,5 +13,7 @@ public class WebCrawlerInit {
             searchString = scanner.nextLine();
         }
         System.out.println("You entered " + searchString);
+        WebCrawler.crawl(searchString);
+
     }
 }
